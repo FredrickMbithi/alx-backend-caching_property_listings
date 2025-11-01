@@ -5,7 +5,7 @@ This module contains view functions that handle HTTP requests
 and return HTTP responses.
 """
 
-from django.shortcuts import render
+from django.http import JsonResponse
 from django.views.decorators.cache import cache_page
 from .models import Property
 import logging
@@ -21,7 +21,7 @@ def property_list(request):
     This view is cached for 15 minutes using @cache_page decorator.
     
     How it works:
-    1. First request: Django fetches data from PostgreSQL, renders HTML,
+    1. First request: Django fetches data from PostgreSQL, serializes to JSON,
        saves response in Redis, returns to user (SLOW - ~100ms)
     
     2. Subsequent requests (within 15 min): Django gets cached response
@@ -33,25 +33,25 @@ def property_list(request):
         request: HTTP request object
     
     Returns:
-        HTTP response with rendered template
+        JSON response with property data
     """
     logger.info("property_list view called - checking cache...")
     
     # This query will run ONLY if response is not in cache
     properties = Property.objects.all().order_by('-created_at')
     
-    # Count for display
-    property_count = properties.count()
+    # Convert queryset to list of dictionaries
+    properties_data = list(properties.values(
+        'id', 'title', 'description', 'price', 'location', 'created_at'
+    ))
     
-    logger.info(f"Fetched {property_count} properties from database")
+    logger.info(f"Fetched {len(properties_data)} properties from database")
     
-    # Render template with context
-    context = {
-        'properties': properties,
-        'property_count': property_count,
-    }
-    
-    return render(request, 'properties/property_list.html', context)
+    # Return JSON response
+    return JsonResponse({
+        'properties': properties_data,
+        'count': len(properties_data)
+    })
 
 
 def property_list_no_cache(request):
