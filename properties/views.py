@@ -8,6 +8,7 @@ and return HTTP responses.
 from django.http import JsonResponse
 from django.views.decorators.cache import cache_page
 from .models import Property
+from .utils import get_all_properties, get_redis_cache_metrics
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,18 +17,15 @@ logger = logging.getLogger(__name__)
 @cache_page(60 * 15)  # Cache for 15 minutes (900 seconds)
 def property_list(request):
     """
-    Display list of all properties.
+    Display list of all properties with JSON response.
     
-    This view is cached for 15 minutes using @cache_page decorator.
+    NOW USES LOW-LEVEL CACHING:
+    - @cache_page caches the JSON response (view-level)
+    - get_all_properties() caches the QuerySet (data-level)
     
-    How it works:
-    1. First request: Django fetches data from PostgreSQL, serializes to JSON,
-       saves response in Redis, returns to user (SLOW - ~100ms)
-    
-    2. Subsequent requests (within 15 min): Django gets cached response
-       from Redis, returns immediately (FAST - ~5ms)
-    
-    3. After 15 minutes: Cache expires, process repeats from step 1
+    This provides TWO layers of caching:
+    1. View cache (full JSON response) - expires in 15 min
+    2. Data cache (QuerySet) - expires in 1 hour
     
     Args:
         request: HTTP request object
@@ -35,17 +33,26 @@ def property_list(request):
     Returns:
         JSON response with property data
     """
-    logger.info("property_list view called - checking cache...")
+    logger.info("property_list view called - using low-level cache...")
     
-    # This query will run ONLY if response is not in cache
-    properties = Property.objects.all().order_by('-created_at')
+    # Use cached queryset from get_all_properties()
+    # This will either return cached data or query database
+    properties = get_all_properties()
     
-    # Convert queryset to list of dictionaries
-    properties_data = list(properties.values(
-        'id', 'title', 'description', 'price', 'location', 'created_at'
-    ))
+    # Convert to list of dictionaries for JSON serialization
+    properties_data = [
+        {
+            'id': prop.id,
+            'title': prop.title,
+            'description': prop.description,
+            'price': str(prop.price),
+            'location': prop.location,
+            'created_at': prop.created_at.isoformat() if prop.created_at else None
+        }
+        for prop in properties
+    ]
     
-    logger.info(f"Fetched {len(properties_data)} properties from database")
+    logger.info(f"Retrieved {len(properties_data)} properties (from cache or DB)")
     
     # Return JSON response
     return JsonResponse({
