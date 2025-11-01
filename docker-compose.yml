@@ -1,0 +1,100 @@
+# Docker Compose Configuration
+# This file defines two services (containers) that will run together
+
+# version: '3.8'  # Docker Compose file format version
+
+services:
+  # ============================================
+  # PostgreSQL Database Service
+  # ============================================
+  postgres:
+    # Use official PostgreSQL image from Docker Hub
+    image: postgres:latest
+    
+    # Container name (easier to reference)
+    container_name: property_listings_postgres
+    
+    # Environment variables for PostgreSQL configuration
+    environment:
+      # Database name
+      POSTGRES_DB: property_listings_db
+      
+      # Database superuser
+      POSTGRES_USER: postgres
+      
+      # Database password (CHANGE THIS IN PRODUCTION!)
+      POSTGRES_PASSWORD: postgres123
+    
+    # Port mapping: host_port:container_port
+    # Access PostgreSQL at localhost:5432 from your computer
+    ports:
+      - "5432:5432"
+    
+    # Persist data even if container stops
+    # This creates a named volume to store database files
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    
+    # Always restart container if it crashes
+    restart: unless-stopped
+    
+    # Health check to ensure PostgreSQL is ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  # ============================================
+  # Redis Cache Service
+  # ============================================
+  redis:
+    # Use official Redis image from Docker Hub
+    image: redis:latest
+    
+    # Container name
+    container_name: property_listings_redis
+    
+    # Port mapping: host_port:container_port
+    # Access Redis at localhost:6379 from your computer
+    ports:
+      - "6379:6379"
+    
+    # Persist Redis data (optional for cache, but useful)
+    volumes:
+      - redis_data:/data
+    
+    # Always restart container if it crashes
+    restart: unless-stopped
+    
+    # Health check to ensure Redis is ready
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    # Optional: Enable Redis persistence
+    command: redis-server --appendonly yes
+
+# ============================================
+# Named Volumes (Persistent Storage)
+# ============================================
+volumes:
+  # PostgreSQL data volume
+  postgres_data:
+    driver: local
+  
+  # Redis data volume
+  redis_data:
+    driver: local
+
+# ============================================
+# Usage Instructions:
+# ============================================
+# Start services:     docker-compose up -d
+# Stop services:      docker-compose down
+# View logs:          docker-compose logs -f
+# Check status:       docker-compose ps
+# Restart services:   docker-compose restart
+# ============================================

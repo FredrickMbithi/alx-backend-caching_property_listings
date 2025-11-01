@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Listings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .header-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .cache-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .cached {
+            background-color: #4caf50;
+            color: white;
+        }
+        .no-cache {
+            background-color: #ff9800;
+            color: white;
+        }
+        .property-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .property-card h2 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .property-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4caf50;
+            margin: 10px 0;
+        }
+        .property-location {
+            color: #666;
+            font-style: italic;
+        }
+        .property-description {
+            color: #333;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+        .property-date {
+            color: #999;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .nav-links {
+            margin: 20px 0;
+        }
+        .nav-links a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .nav-links a:hover {
+            background: #0056b3;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 8px;
+        }
+        .empty-state h2 {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>
+        Property Listings
+        {% if no_cache %}
+            <span class="cache-badge no-cache">NO CACHE</span>
+        {% else %}
+            <span class="cache-badge cached">CACHED (15 min)</span>
+        {% endif %}
+    </h1>
+
+    <div class="header-info">
+        <p><strong>Total Properties:</strong> {{ property_count }}</p>
+        <p><strong>Cache Status:</strong> 
+            {% if no_cache %}
+                This page is <strong>NOT cached</strong> - data fetched directly from PostgreSQL on every request
+            {% else %}
+                This page is <strong>cached for 15 minutes</strong> - served from Redis cache
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="nav-links">
+        <a href="{% url 'properties:property_list' %}">Cached Version</a>
+        <a href="{% url 'properties:property_list_no_cache' %}">Non-Cached Version</a>
+        <a href="/admin/">Admin Panel</a>
+    </div>
+
+    {% if properties %}
+        {% for property in properties %}
+            <div class="property-card">
+                <h2>{{ property.title }}</h2>
+                <div class="property-price">${{ property.price }}</div>
+                <div class="property-location">📍 {{ property.location }}</div>
+                <div class="property-description">{{ property.description }}</div>
+                <div class="property-date">Listed: {{ property.created_at|date:"F d, Y" }}</div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <h2>No Properties Listed Yet</h2>
+            <p>Add some properties via the <a href="/admin/">admin panel</a> to see them here!</p>
+        </div>
+    {% endif %}
+
+</body>
+</html>
