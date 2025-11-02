@@ -82,3 +82,23 @@ def property_list_no_cache(request):
     }
     
     return render(request, 'properties/property_list.html', context)
+
+
+def cache_metrics_view(request):
+    """
+    Display Redis cache performance metrics.
+    
+    Returns:
+        JSON response with cache hit/miss statistics
+    """
+    logger.info("cache_metrics_view called")
+    
+    try:
+        metrics = get_redis_cache_metrics()
+        return JsonResponse(metrics)
+    except Exception as e:
+        logger.error(f"Error retrieving cache metrics: {e}")
+        return JsonResponse({
+            'error': 'Failed to retrieve cache metrics',
+            'details': str(e)
+        }, status=500)

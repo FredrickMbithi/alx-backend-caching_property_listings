@@ -10,10 +10,14 @@ app_name = 'properties'
 
 urlpatterns = [
     # Cached property list
-    properties/
+    # URL: /properties/
     path('', views.property_list, name='property_list'),
     
     # Non-cached property list (for testing)
     # URL: /properties/no-cache/
     path('no-cache/', views.property_list_no_cache, name='property_list_no_cache'),
+    
+    # Cache metrics dashboard
+    # URL: /properties/metrics/
+    path('metrics/', views.cache_metrics_view, name='cache_metrics'),
 ]
