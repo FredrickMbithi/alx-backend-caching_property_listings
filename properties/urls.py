@@ -10,7 +10,7 @@ app_name = 'properties'
 
 urlpatterns = [
     # Cached property list
-    # URL: /properties/
+    properties/
     path('', views.property_list, name='property_list'),
     
     # Non-cached property list (for testing)
