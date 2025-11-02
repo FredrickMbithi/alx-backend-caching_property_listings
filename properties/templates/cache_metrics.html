@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Cache Metrics</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            transition: transform 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-value {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hit-ratio-card {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .excellent {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+        }
+
+        .good {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+        }
+
+        .fair {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+        }
+
+        .poor {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%) !important;
+        }
+
+        .interpretation {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .interpretation h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+        }
+
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📊 Redis Cache Metrics</h1>
+        <p class="subtitle">Real-time cache performance analysis</p>
+
+        {% if metrics.error %}
+        <div class="error">
+            <strong>⚠️ Error:</strong> {{ metrics.error }}
+            <br><small>Make sure Redis is running and accessible.</small>
+        </div>
+        {% else %}
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Requests</div>
+                <div class="metric-value">{{ metrics.total_requests|default:"0" }}</div>
+            </div>
+
+            <div class="metric-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="metric-label">Cache Hits</div>
+                <div class="metric-value">{{ metrics.keyspace_hits|default:"0" }}</div>
+            </div>
+
+            <div class="metric-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="metric-label">Cache Misses</div>
+                <div class="metric-value">{{ metrics.keyspace_misses|default:"0" }}</div>
+            </div>
+
+            <div class="metric-card hit-ratio-card 
+                    {% if metrics.hit_ratio >= 80 %}excellent
+                    {% elif metrics.hit_ratio >= 60 %}good
+                    {% elif metrics.hit_ratio >= 40 %}fair
+                    {% else %}poor{% endif %}">
+                <div class="metric-label">Hit Ratio</div>
+                <div class="metric-value">{{ metrics.hit_ratio|floatformat:2 }}%</div>
+            </div>
+        </div>
+
+        <div class="interpretation">
+            <h3>📈 Performance Interpretation</h3>
+            {% if metrics.hit_ratio >= 80 %}
+            <p><strong>✓ EXCELLENT</strong> - Your cache is highly effective! Most requests are served from cache,
+                significantly reducing database load.</p>
+            {% elif metrics.hit_ratio >= 60 %}
+            <p><strong>✓ GOOD</strong> - Cache is working well. Consider increasing cache timeout for frequently
+                accessed data.</p>
+            {% elif metrics.hit_ratio >= 40 %}
+            <p><strong>⚠ FAIR</strong> - Cache performance could be improved. Review cache keys and timeout strategies.
+            </p>
+            {% else %}
+            <p><strong>✗ POOR</strong> - Cache needs optimization. Most requests are bypassing cache or cache is
+                expiring too quickly.</p>
+            {% endif %}
+
+            <h3>📝 Recommendations</h3>
+            <ul>
+                {% if metrics.hit_ratio < 60 %} <li>Increase cache timeout for stable data</li>
+                    <li>Review cache invalidation logic - may be clearing too frequently</li>
+                    <li>Pre-warm cache during off-peak hours</li>
+                    {% endif %}
+                    {% if metrics.total_requests < 100 %} <li>Generate more traffic to get meaningful metrics</li>
+                        <li>Visit <a href="/properties/">/properties/</a> multiple times</li>
+                        {% endif %}
+                        <li>Monitor metrics regularly to track improvements</li>
+                        <li>Set up alerts for hit ratio below 60%</li>
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="actions">
+            <a href="/properties/" class="btn">View Properties</a>
+            <a href="/admin/" class="btn">Django Admin</a>
+            <a href="javascript:location.reload()" class="btn">Refresh Metrics</a>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -5,6 +5,7 @@ This module contains view functions that handle HTTP requests
 and return HTTP responses.
 """
 
+from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.cache import cache_page
 from .models import Property
